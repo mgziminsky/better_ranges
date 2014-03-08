@@ -1,3 +1,5 @@
+[![Gem Version](https://badge.fury.io/rb/better_ranges.png)](http://badge.fury.io/rb/better_ranges)
+
 # BetterRanges
 
 Adds support for basic set operations to the ruby Range class through the addition of a new SparseRange class.
