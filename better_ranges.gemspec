@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = BetterRanges::VERSION
   spec.authors       = ['Michael Ziminsky']
   spec.email         = ['mgziminsky@gmail.com']
-  spec.summary       = 'Add support for set operations to the ruby Range class'
+  spec.summary       = 'Adds support for basic set operations to the ruby Range class through the addition of a new SparseRange class'
   spec.homepage      = 'https://github.com/mgziminsky/better_ranges'
   spec.license       = 'MIT'
 
