@@ -3,13 +3,10 @@ module BetterRanges
     include Enumerable
 
     def initialize(*data)
-      @ranges = [*data].map! do |x|
-        if (x.is_a?(Enumerable))
-          if (x.none?)
-            return nil
-          elsif (x.is_a?(SparseRange))
-            return x.ranges.clone
-          end
+      @data = [*data].map! do |x|
+        if x.is_a?(Enumerable)
+          return nil if x.none?
+          return x.data.clone if x.is_a?(SparseRange)
         end
         x
       end
@@ -18,8 +15,8 @@ module BetterRanges
 
     def each(&block)
       Enumerator.new do |yielder|
-        @ranges.each do |r|
-          yield_each(r){ |x| yielder.yield x}
+        @data.each do |r|
+          yield_each(r) { |x| yielder.yield x }
         end
       end.each(&block)
     end
@@ -27,9 +24,9 @@ module BetterRanges
     def step(num = 1, &block)
       i = 0
       Enumerator.new do |yielder|
-        @ranges.each do |r|
+        @data.each do |r|
           yield_each(r) do |x|
-            yielder.yield x if ((i % num) == 0)
+            yielder.yield x if (i % num) == 0
             i += 1
           end
         end
@@ -37,33 +34,33 @@ module BetterRanges
     end
 
     def last
-      read_val(@ranges.last).last
+      read_val(@data.last).last
     end
 
     def |(x)
-      SparseRange.new(@ranges, *x)
+      SparseRange.new(@data, *x)
     end
 
     def -(x)
       diff = SparseRange.new
-      diff_data = diff.ranges
+      diff_data = diff.data
 
       i = 0
       next_val = lambda do
-        throw :done unless i < @ranges.length
-        v = read_val(@ranges[i])
+        throw :done unless i < @data.length
+        v = read_val(@data[i])
         i += 1
         v
       end
 
       catch(:done) do
-        other = (x.is_a?(SparseRange) ? x : SparseRange.new(x)).ranges
+        other = (x.is_a?(SparseRange) ? x : SparseRange.new(x)).data
 
         start, finish = next_val.call
         other.each do |r|
           other_start, other_finish = read_val(r)
 
-          while (finish < other_start)
+          while finish < other_start
             diff_data << write_val(start, finish)
             start, finish = next_val.call
           end
@@ -83,23 +80,23 @@ module BetterRanges
 
     def &(x)
       intersect = SparseRange.new
-      intersect_data = intersect.ranges
+      intersect_data = intersect.data
 
       i = 0
       next_val = lambda do
-        throw :done unless i < @ranges.length
-        v = read_val(@ranges[i])
+        throw :done unless i < @data.length
+        v = read_val(@data[i])
         i += 1
         v
       end
 
       catch(:done) do
-        other = (x.is_a?(SparseRange) ? x : SparseRange.new(x)).ranges
+        other = (x.is_a?(SparseRange) ? x : SparseRange.new(x)).data
 
         start, finish = next_val.call
         other.each do |r|
           other_start, other_finish = read_val(r)
-          start, finish = next_val.call while (finish < other_start)
+          start, finish = next_val.call while finish < other_start
 
           until other_finish < start
             first = [start, other_start].max
@@ -120,34 +117,34 @@ module BetterRanges
     end
 
     def <<(x)
-      @ranges << [*(x.is_a?(SparseRange) ? x.ranges : x)]
+      @data << [*(x.is_a?(SparseRange) ? x.data : x)]
       optimize
 
       self
     end
 
     def inspect
-      @ranges.inspect
+      @data.inspect
     end
 
     def include?(x)
-      @ranges.any? do |r|
+      @data.any? do |r|
         r.is_a?(Range) ? r.include?(x) : x == r
       end
     end
 
     def empty?
-      @ranges.empty?
+      @data.empty? || size == 0
     end
 
     def size
-      @ranges.inject(0){|c, x| c + (x.is_a?(Range) ? x.count : 1)}
+      @data.reduce(0) { |a, e| a + (e.is_a?(Range) ? e.count : 1) }
     end
 
     def ==(x)
-      other = (x.is_a?(SparseRange) ? x : SparseRange.new(x)).ranges
+      other = (x.is_a?(SparseRange) ? x : SparseRange.new(x)).data
       i = 0
-      (@ranges.length == other.length) && @ranges.all? do |e|
+      (@data.length == other.length) && @data.all? do |e|
         o = other[i]
         i += 1
         (e == o) || (read_val(e) == read_val(o))
@@ -156,28 +153,29 @@ module BetterRanges
 
     # TODO: Calculate hash without creating the temp array
     def hash
-      @ranges.map(&method(:read_val)).hash
+      @data.map(&method(:read_val)).hash
     end
 
-    alias :+ :|
-    alias :union :|
+    alias_method :+, :|
+    alias_method :union, :|
 
-    alias :minus :-
-    alias :intersect :&
+    alias_method :minus, :-
+    alias_method :intersect, :&
 
-    alias :add :<<
+    alias_method :add, :<<
 
-    alias :cover? :include?
-    alias :=== :include?
+    alias_method :cover?, :include?
+    alias_method :===, :include?
 
-    alias :eql? :==
+    alias_method :eql?, :==
 
     protected
-    attr_reader :ranges
+
+    attr_reader :data
 
     def yield_each(e)
-      if (e.is_a?(Range))
-        e.each{|x| yield x}
+      if e.is_a?(Range)
+        e.each { |x| yield x }
       else
         yield e
       end
@@ -186,7 +184,11 @@ module BetterRanges
     private
 
     def read_val(x)
-      x.is_a?(Range) ? [x.first, (x.exclude_end? ? x.max : x.last)] : [x, x]
+      if x.is_a?(Range)
+        [x.first, (x.exclude_end? ? x.max : x.last)]
+      else
+        [x, x]
+      end
     end
 
     def write_val(start, finish)
@@ -194,17 +196,17 @@ module BetterRanges
     end
 
     def optimize
-      @ranges.flatten!
-      @ranges.compact!
-      @ranges.sort!{|a,b| (a <=> b) || (read_val(a) <=> read_val(b))}
+      @data.flatten!
+      @data.compact!
+      @data.sort! { |a, b| (a <=> b) || (read_val(a) <=> read_val(b)) }
 
       fixed = []
-      start, finish = read_val(@ranges.first)
+      start, finish = read_val(@data.first)
 
-      for i in (1...@ranges.length)
-        first, last = read_val(@ranges[i])
+      for i in (1...@data.length)
+        first, last = read_val(@data[i])
 
-        if (finish.succ >= first)
+        if finish.succ >= first
           finish = last if last > finish
         else
           fixed << write_val(start, finish)
@@ -213,7 +215,7 @@ module BetterRanges
       end
       fixed << write_val(start, finish) if finish
 
-      @ranges = fixed
+      @data = fixed
     end
   end
 end
@@ -223,7 +225,7 @@ class Range
 
   def <=>(other)
     comp = nil
-    if (other.is_a?(Range) || other.is_a?(BetterRanges::SparseRange))
+    if other.is_a?(Range) || other.is_a?(BetterRanges::SparseRange)
       comp = (first <=> other.first)
       comp = (last <=> other.last) if comp == 0
       if comp == 0
