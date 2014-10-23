@@ -2,7 +2,7 @@ require 'spec_helper'
 include BetterRanges
 
 describe BetterRanges::SparseRange do
-  context 'subtraction(#-)' do
+  context 'difference(#-)' do
     it 'should work' do
       a = SparseRange.new(-20..-10, 1..25, 50..75, 100..200, 300..400, 500..600, 700..800, 900)
       b = SparseRange.new(-5..-1, 5..15, 40..80, 90..125, 150..225, 250..350, 550..650, 750, 850..950, 1000)

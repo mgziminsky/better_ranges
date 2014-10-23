@@ -18,6 +18,7 @@ module BetterRanges
     alias_method :union, :|
 
     alias_method :minus, :-
+    alias_method :difference, :-
     alias_method :intersect, :&
   end
 end

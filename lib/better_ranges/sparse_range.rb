@@ -21,6 +21,12 @@ module BetterRanges
       end.each(&block)
     end
 
+    def sparse_each(&block)
+      @data.each do |x|
+        x.is_a?(Range) ? x : (x..x)
+      end
+    end
+
     def step(num = 1, &block)
       i = 0
       Enumerator.new do |yielder|
@@ -160,6 +166,7 @@ module BetterRanges
     alias_method :union, :|
 
     alias_method :minus, :-
+    alias_method :difference, :-
     alias_method :intersect, :&
 
     alias_method :add, :<<
